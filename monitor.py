@@ -113,7 +113,7 @@ def check_continuous(scrape_delay, age_cutoff):
                 for userIndex in range(0,userCount):
                     if check_keywords(sub,userIndex):
                         age = check_age(sub)
-                        if True or age <= age_cutoff:
+                        if age <= age_cutoff:
                             # if the post is recent, send notifications asap
                             # TODO: send notifications at a reduced rate (rather than stopping) if the post is old
                             send_notification(sub, userIndex)
