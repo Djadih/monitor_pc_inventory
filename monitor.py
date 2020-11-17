@@ -52,11 +52,11 @@ def return_reddit_instance(path_to_config_file):
 def check_keywords(submission, userIndex):
     submission_title = submission.title
 
-    punc = '''!()-[]{};:'"\, <>./?@#$%^&*_~'''
+    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
     for ele in submission_title:
             if ele in punc:
                 submission_title = submission_title.replace(ele, "")
-
+                
     submission_words = str.lower(submission_title).split()
 
     global keywords
