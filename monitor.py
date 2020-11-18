@@ -9,6 +9,7 @@ keywords = [[]]
 blacklist = []
 lastPostTitles = []
 userCount = 0
+ignore = False
 
 
 def load_reddit_data():
@@ -93,6 +94,8 @@ def send_notification(submission, userIndex):
     global lastPostTitles
     if submission.title in lastPostTitles:
         isNew = False
+        global ignore
+        ignore = False
 
     try:
         webhooks.send_discord(
@@ -105,30 +108,37 @@ def send_notification(submission, userIndex):
 def check_continuous(scrape_delay, age_cutoff):
     count = scrape_delay
     found_count = 0
-
+    global ignore
     while 1:
-        # Refresh .ini without actually having to stop and start
-        if count % 5 == 0:
-            print("Refreshing keywords/blacklist...")
-            load_reddit_data()
-        if count - found_count >= scrape_delay:
-            submissions = get_submissions()
-            curPostTitles = []
-            for sub in submissions:
-                curPostTitles.append(sub.title)
-                for userIndex in range(0, userCount):
-                    if check_keywords(sub, userIndex):
-                        age = check_age(sub)
-                        if age <= age_cutoff:
-                            # if the post is recent, send notifications asap
-                            # TODO: send notifications at a reduced rate (rather than stopping) if the post is old
-                            send_notification(sub, userIndex)
-            global lastPostTitles
-            lastPostTitles = curPostTitles
-        print(count)
-        count += 1
-        time.sleep(scrape_delay)
+        try:
+            if count % 5 == 0:
+                print("Refreshing keywords/blacklist...")
+                load_reddit_data()
+            if count - found_count >= scrape_delay:
+                submissions = get_submissions()
+                curPostTitles = []
+                for sub in submissions:
+                    curPostTitles.append(sub.title)
+                    for userIndex in range(0,userCount):
+                        if check_keywords(sub,userIndex):
+                            age = check_age(sub)
+                            if age <= age_cutoff and ignore == False:
+                                # if the post is recent, send notifications asap
+                                # TODO: send notifications at a reduced rate (rather than stopping) if the post is old
+                                send_notification(sub, userIndex)
+                global lastPostTitles
+                lastPostTitles = curPostTitles
+            #Refresh .ini without actually having to stop and start
 
+            print(count)
+            count += 1
+            time.sleep(scrape_delay)
+        except:
+            prompt = str.lower(input("Continue and mute current post?"))
+            if prompt != "y":
+                raise
+            ignore = True
+            pass
 
 if __name__ == "__main__":
 
