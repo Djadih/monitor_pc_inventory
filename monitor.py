@@ -92,9 +92,10 @@ def send_notification(submission, userIndex):
 
     isNew = True
     global lastPostTitles
+    global ignore
     if submission.title in lastPostTitles:
         isNew = False
-        global ignore
+    else:
         ignore = False
 
     try:
