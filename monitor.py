@@ -2,6 +2,7 @@ import time
 import praw
 import webhooks
 import configparser
+import string
 
 subreddits = []
 keywords = [[]]
@@ -9,19 +10,20 @@ blacklist = []
 lastPostTitles = []
 userCount = 0
 
+
 def load_reddit_data():
     global parser
     parser = configparser.ConfigParser()
     parser.read("config.ini")
 
     global subreddits
-    subreddits = str(parser["REDDIT"]["subreddits"]).split(',')
+    subreddits = str(parser["REDDIT"]["subreddits"]).split(",")
     global keywords
-    keywords = [x.split(',') for x in str(parser["REDDIT"]["keywords"]).split('|')]
+    keywords = [x.split(",") for x in str(parser["REDDIT"]["keywords"]).split("|")]
     global userCount
     userCount = len(keywords)
     global blacklist
-    blacklist = str(parser["REDDIT"]["blacklist"]).split(',')
+    blacklist = str(parser["REDDIT"]["blacklist"]).split(",")
 
     print("Subs to check:")
     print(subreddits)
@@ -32,6 +34,7 @@ def load_reddit_data():
     print("userCount:")
     print(userCount)
 
+
 def return_reddit_instance(path_to_config_file):
     # get config options
     parser = configparser.ConfigParser()
@@ -40,7 +43,7 @@ def return_reddit_instance(path_to_config_file):
     client_secret = str(parser["REDDIT"]["client_secret"])
     user_agent = str(parser["REDDIT"]["user_agent"])
 
-    load_reddit_data();
+    load_reddit_data()
 
     reddit = praw.Reddit(
         client_id=client_id, client_secret=client_secret, user_agent=user_agent
@@ -52,11 +55,9 @@ def return_reddit_instance(path_to_config_file):
 def check_keywords(submission, userIndex):
     submission_title = submission.title
 
-    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
-    for ele in submission_title:
-            if ele in punc:
-                submission_title = submission_title.replace(ele, "")
-                
+    translator = str.maketrans(dict.fromkeys(string.punctuation))
+    submission_title = submission_title.translate(translator)
+
     submission_words = str.lower(submission_title).split()
 
     global keywords
@@ -88,14 +89,15 @@ def get_submissions():
 def send_notification(submission, userIndex):
     print("Found:", submission.title)
 
-
     isNew = True
     global lastPostTitles
     if submission.title in lastPostTitles:
         isNew = False
 
     try:
-        webhooks.send_discord(submission.title + "\n" + submission.url, isNew, userIndex)
+        webhooks.send_discord(
+            submission.title + "\n" + submission.url, isNew, userIndex
+        )
     except:
         pass
 
@@ -105,7 +107,7 @@ def check_continuous(scrape_delay, age_cutoff):
     found_count = 0
 
     while 1:
-        #Refresh .ini without actually having to stop and start
+        # Refresh .ini without actually having to stop and start
         if count % 5 == 0:
             print("Refreshing keywords/blacklist...")
             load_reddit_data()
@@ -114,8 +116,8 @@ def check_continuous(scrape_delay, age_cutoff):
             curPostTitles = []
             for sub in submissions:
                 curPostTitles.append(sub.title)
-                for userIndex in range(0,userCount):
-                    if check_keywords(sub,userIndex):
+                for userIndex in range(0, userCount):
+                    if check_keywords(sub, userIndex):
                         age = check_age(sub)
                         if age <= age_cutoff:
                             # if the post is recent, send notifications asap
@@ -134,6 +136,16 @@ if __name__ == "__main__":
 
     input("Press Enter to continue... (We'll send a test message to start)")
     for userIndex in range(0, userCount):
-        webhooks.send_discord("Bot Starting Up:\nMonitoring Subreddits: " + str(subreddits) + "\nUsing Keywords: " + str(keywords[userIndex]) + "\nBlacklist: " + str(blacklist) + "\nHappy Hunting!", True, userIndex)
+        webhooks.send_discord(
+            "Bot Starting Up:\nMonitoring Subreddits: "
+            + str(subreddits)
+            + "\nUsing Keywords: "
+            + str(keywords[userIndex])
+            + "\nBlacklist: "
+            + str(blacklist)
+            + "\nHappy Hunting!",
+            True,
+            userIndex,
+        )
     # reasonable values are 5, 900
     check_continuous(5, 900)
