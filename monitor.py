@@ -95,8 +95,6 @@ def send_notification(submission, userIndex):
     global ignore
     if submission.title in lastPostTitles:
         isNew = False
-    else:
-        ignore = False
 
     try:
         webhooks.send_discord(
@@ -118,16 +116,18 @@ def check_continuous(scrape_delay, age_cutoff):
             if count - found_count >= scrape_delay:
                 submissions = get_submissions()
                 curPostTitles = []
+                global lastPostTitles
                 for sub in submissions:
                     curPostTitles.append(sub.title)
                     for userIndex in range(0,userCount):
                         if check_keywords(sub,userIndex):
                             age = check_age(sub)
+                            if not (sub.title in lastPostTitles):
+                                ignore = False
                             if age <= age_cutoff and ignore == False:
                                 # if the post is recent, send notifications asap
                                 # TODO: send notifications at a reduced rate (rather than stopping) if the post is old
                                 send_notification(sub, userIndex)
-                global lastPostTitles
                 lastPostTitles = curPostTitles
             #Refresh .ini without actually having to stop and start
 
